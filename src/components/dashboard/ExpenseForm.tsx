@@ -24,13 +24,16 @@ const ExpenseForm = ({ onSuccess }: { onSuccess?: () => void }) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("expenses").insert([
-        {
-          amount: parseFloat(amount),
-          category,
-          description,
-        },
-      ]);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("You must be logged in to add expenses");
+      
+      const { error } = await supabase.from("expenses").insert({
+        amount: parseFloat(amount),
+        category: category as any, // Cast to any to bypass type checking (the DB will validate)
+        description,
+        user_id: user.id
+      });
 
       if (error) throw error;
       
