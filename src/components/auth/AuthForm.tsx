@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AuthForm = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,10 @@ const AuthForm = () => {
         title: isSignUp ? "Account created!" : "Welcome back!",
         description: isSignUp ? "Please check your email to verify your account." : "You've been successfully logged in.",
       });
+
+      if (!isSignUp) {
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         title: "Error",

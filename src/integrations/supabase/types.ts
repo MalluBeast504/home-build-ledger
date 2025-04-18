@@ -11,79 +11,83 @@ export type Database = {
     Tables: {
       expenses: {
         Row: {
-          amount: number
-          category: Database["public"]["Enums"]["expense_category"]
-          created_at: string | null
-          date: string
-          description: string | null
-          id: string
-          user_id: string
-          vendor_id: string | null
-        }
+          id: string;
+          amount: number;
+          category: string;
+          description: string | null;
+          vendor_id: string | null;
+          date: string;
+          created_at: string | null;
+          user_id: string;
+        };
         Insert: {
-          amount: number
-          category: Database["public"]["Enums"]["expense_category"]
-          created_at?: string | null
-          date?: string
-          description?: string | null
-          id?: string
-          user_id: string
-          vendor_id?: string | null
-        }
+          id?: string;
+          amount: number;
+          category: string;
+          description?: string | null;
+          vendor_id?: string | null;
+          date?: string;
+          created_at?: string | null;
+          user_id: string;
+        };
         Update: {
-          amount?: number
-          category?: Database["public"]["Enums"]["expense_category"]
-          created_at?: string | null
-          date?: string
-          description?: string | null
-          id?: string
-          user_id?: string
-          vendor_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expenses_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+          id?: string;
+          amount?: number;
+          category?: string;
+          description?: string | null;
+          vendor_id?: string | null;
+          date?: string;
+          created_at?: string | null;
+          user_id?: string;
+        };
+      };
+      custom_categories: {
+        Row: {
+          id: number;
+          name: string;
+          user_id: string;
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          user_id: string;
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          user_id?: string;
+        };
+      };
       vendors: {
         Row: {
-          contact: string | null
-          created_at: string | null
-          id: string
-          name: string
-          type: string
-          user_id: string
-        }
+          id: string;
+          name: string;
+          type: string;
+          created_at: string | null;
+          user_id: string;
+        };
         Insert: {
-          contact?: string | null
-          created_at?: string | null
-          id?: string
-          name: string
-          type: string
-          user_id: string
-        }
+          id?: string;
+          name: string;
+          type: string;
+          created_at?: string | null;
+          user_id: string;
+        };
         Update: {
-          contact?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-    }
+          id?: string;
+          name?: string;
+          type?: string;
+          created_at?: string | null;
+          user_id?: string;
+        };
+      };
+    };
     Views: {
       [_ in never]: never
-    }
+    };
     Functions: {
       [_ in never]: never
-    }
+    };
     Enums: {
       expense_category:
         | "paints"
@@ -93,7 +97,7 @@ export type Database = {
         | "tools"
         | "equipment"
         | "other"
-    }
+    };
     CompositeTypes: {
       [_ in never]: never
     }
