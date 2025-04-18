@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, LayoutDashboard } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -23,8 +23,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate("/auth");
   };
 
-  const isActive = (path: string) => location.pathname === path;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm">
@@ -33,20 +31,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <h1 className="text-xl font-bold">Home Build Ledger</h1>
-              </div>
-              <div className="ml-6 flex space-x-4">
-                <Link to="/dashboard">
-                  <Button 
-                    variant={isActive('/dashboard') ? 'default' : 'ghost'}
-                    className={cn(
-                      'flex items-center space-x-2',
-                      isActive('/dashboard') ? 'bg-primary text-primary-foreground' : ''
-                    )}
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </Button>
-                </Link>
               </div>
             </div>
             <div className="flex items-center">
