@@ -9,7 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          date: string
+          description: string | null
+          id: string
+          user_id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          user_id: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          id?: string
+          user_id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          contact: string | null
+          created_at: string | null
+          id: string
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +85,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      expense_category:
+        | "paints"
+        | "metals"
+        | "labor"
+        | "materials"
+        | "tools"
+        | "equipment"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +207,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      expense_category: [
+        "paints",
+        "metals",
+        "labor",
+        "materials",
+        "tools",
+        "equipment",
+        "other",
+      ],
+    },
   },
 } as const
