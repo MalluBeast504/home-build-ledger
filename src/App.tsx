@@ -7,12 +7,13 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+const basename = import.meta.env.DEV ? '/' : '/home-build-ledger';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <BrowserRouter basename="/home-build-ledger">
+      <BrowserRouter basename={basename}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
