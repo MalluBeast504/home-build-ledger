@@ -786,6 +786,20 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+
+              {/* Filtered Total Amount */}
+              <div className="flex items-center gap-2">
+                <Card className="w-auto">
+                  <CardHeader className="py-2 px-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground">Filtered Total:</span>
+                      <span className="text-lg font-bold">
+                        {formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
+                      </span>
+                    </div>
+                  </CardHeader>
+                </Card>
+              </div>
             </div>
             </CardHeader>
             <CardContent>
