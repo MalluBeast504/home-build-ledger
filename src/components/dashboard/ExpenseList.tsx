@@ -28,8 +28,8 @@ export default function ExpenseList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   // Update state type to be either a valid expense category or an empty string
-  const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | "">("");
-  const [vendorTypeFilter, setVendorTypeFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | null>(null);
+  const [vendorTypeFilter, setVendorTypeFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchExpenses();
@@ -71,20 +71,30 @@ export default function ExpenseList() {
     }).format(amount);
   };
 
+  // Handler for category filter that converts "all" to null
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value === "all" ? null : value as ExpenseCategory);
+  };
+
+  // Handler for vendor type filter that converts "all" to null
+  const handleVendorTypeChange = (value: string) => {
+    setVendorTypeFilter(value === "all" ? null : value);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Expenses List</CardTitle>
         <div className="flex gap-4">
           <Select 
-            value={categoryFilter} 
-            onValueChange={(value: ExpenseCategory | "") => setCategoryFilter(value)}
+            value={categoryFilter || "all"} 
+            onValueChange={handleCategoryChange}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {Constants.public.Enums.expense_category.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -93,12 +103,12 @@ export default function ExpenseList() {
             </SelectContent>
           </Select>
 
-          <Select value={vendorTypeFilter} onValueChange={setVendorTypeFilter}>
+          <Select value={vendorTypeFilter || "all"} onValueChange={handleVendorTypeChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by person type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="engineer">Engineer</SelectItem>
               <SelectItem value="contractor">Contractor</SelectItem>
               <SelectItem value="supplier">Supplier</SelectItem>
