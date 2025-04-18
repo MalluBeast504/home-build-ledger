@@ -21,10 +21,14 @@ type Expense = {
   vendor: { name: string; type: string } | null;
 };
 
+// Define the valid expense categories type using the Constants enum
+type ExpenseCategory = typeof Constants.public.Enums.expense_category[number];
+
 export default function ExpenseList() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  // Update state type to be either a valid expense category or an empty string
+  const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | "">("");
   const [vendorTypeFilter, setVendorTypeFilter] = useState<string>("");
 
   useEffect(() => {
@@ -43,6 +47,7 @@ export default function ExpenseList() {
         .order('date', { ascending: false });
 
       if (categoryFilter) {
+        // Now categoryFilter is properly typed to match the expected enum values
         query = query.eq('category', categoryFilter);
       }
       if (vendorTypeFilter) {
@@ -71,7 +76,10 @@ export default function ExpenseList() {
       <CardHeader>
         <CardTitle>Expenses List</CardTitle>
         <div className="flex gap-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select 
+            value={categoryFilter} 
+            onValueChange={(value: ExpenseCategory | "") => setCategoryFilter(value)}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
