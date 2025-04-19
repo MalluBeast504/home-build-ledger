@@ -261,24 +261,28 @@ export default function Dashboard() {
 
       // Calculate monthly totals and change
       const now = new Date();
+      const currentYear = now.getFullYear();
       const currentMonth = now.getMonth();
-      const lastMonth = currentMonth - 1;
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
       const currentMonthExpenses = expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === currentMonth;
+        return expenseDate.getMonth() === currentMonth && 
+               expenseDate.getFullYear() === currentYear;
       });
 
       const lastMonthExpenses = expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === lastMonth;
+        return expenseDate.getMonth() === lastMonth && 
+               expenseDate.getFullYear() === lastMonthYear;
       });
 
       const currentMonthTotal = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
       const lastMonthTotal = lastMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
       setMonthlySpent(currentMonthTotal);
-      setMonthlyChange(((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
+      setMonthlyChange(lastMonthTotal === 0 ? 0 : ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
 
       // Calculate category totals and prepare pie chart data
       const categoryMap = expenses.reduce((acc, expense) => {
