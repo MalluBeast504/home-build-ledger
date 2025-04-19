@@ -631,16 +631,16 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Key Metrics */}
-        <div className="grid gap-6 md:grid-cols-4">
+      <div className="space-y-4 md:space-y-6">
+        {/* Key Metrics - Stack on mobile, grid on larger screens */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
               <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+              <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalSpent)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -649,10 +649,10 @@ export default function Dashboard() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(monthlySpent)}</div>
+              <div className="text-xl md:text-2xl font-bold">{formatCurrency(monthlySpent)}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="md:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Monthly Change</CardTitle>
               {monthlyChange >= 0 ? (
@@ -662,31 +662,27 @@ export default function Dashboard() {
               )}
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${monthlyChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <div className={clsx(
+                "text-xl md:text-2xl font-bold",
+                monthlyChange >= 0 ? "text-green-500" : "text-red-500"
+              )}>
                 {monthlyChange.toFixed(1)}%
               </div>
               <div className="text-sm text-muted-foreground mt-1">
-                vs last month: {" "}
-                <span className={clsx(
-                  "font-medium",
-                  monthlyChange >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {monthlyChange >= 0 ? "+" : ""}{monthlyChange.toFixed(1)}%
-                </span>
+                vs last month
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid gap-6">
-          {/* Category Distribution Pie Chart */}
+        {/* Charts - Adjust height for mobile */}
+        <div className="grid gap-4">
           <Card>
             <CardHeader>
               <CardTitle>Expense Distribution</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
+              <div className="h-[300px] md:h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -695,9 +691,11 @@ export default function Dashboard() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={150}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      labelLine={true}
+                      outerRadius={100}
+                      label={({ name, percent }) => 
+                        window.innerWidth > 768 ? `${name} (${(percent * 100).toFixed(0)}%)` : `${(percent * 100).toFixed(0)}%`
+                      }
+                      labelLine={window.innerWidth > 768}
                     >
                       {pieChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -714,13 +712,13 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Expense List with Enhanced Filters */}
-          <Card>
-            <CardHeader>
+        {/* Expense List */}
+        <Card>
+          <CardHeader>
             <CardTitle>Expenses List</CardTitle>
             <div className="space-y-4">
-              {/* Search and Reset */}
-              <div className="flex gap-4 items-center">
+              {/* Search and Reset - Stack on mobile */}
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                   <Button
                     variant="outline"
@@ -734,49 +732,17 @@ export default function Dashboard() {
                     </kbd>
                   </Button>
                 </div>
-                <Button variant="outline" onClick={resetFilters}>
+                <Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto">
                   <X className="h-4 w-4 mr-2" />
-                  Reset Filters
+                  Reset
                 </Button>
               </div>
 
-              <CommandDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
-                <CommandInput 
-                  placeholder="Search expenses..."
-                  onValueChange={(search) => {
-                    setSearchSuggestions(generateSearchSuggestions(search));
-                  }}
-                />
-                <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  {searchSuggestions.length > 0 && (
-                    <>
-                      <CommandGroup heading="Suggestions">
-                        {searchSuggestions.map((suggestion, index) => (
-                          <CommandItem
-                            key={`${suggestion.type}-${index}`}
-                            value={suggestion.searchValue}
-                            onSelect={() => handleSearchSelect(suggestion)}
-                          >
-                            {suggestion.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </>
-                  )}
-                  <CommandSeparator />
-                  <CommandGroup heading="Tips">
-                    <CommandItem>Search by category, person, amount, or description</CommandItem>
-                    <CommandItem>Use ⌘+K to quickly open search</CommandItem>
-                  </CommandGroup>
-                </CommandList>
-              </CommandDialog>
-
-              {/* Filters */}
-              <div className="flex flex-wrap gap-4">
+              {/* Filters - Stack on mobile, wrap on tablet+ */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by category" />
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
@@ -802,8 +768,8 @@ export default function Dashboard() {
                 </Select>
 
                 <Select value={vendorFilter} onValueChange={setVendorFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by person" />
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Person" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All People</SelectItem>
@@ -816,8 +782,8 @@ export default function Dashboard() {
                 </Select>
 
                 <Select value={vendorTypeFilter} onValueChange={setVendorTypeFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by type" />
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
@@ -827,70 +793,75 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
 
-                <div className="flex gap-2 items-center">
+                {/* Amount Range - Stack on mobile */}
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Input
                     type="number"
                     placeholder="Min amount"
                     value={minAmount}
                     onChange={(e) => setMinAmount(e.target.value)}
-                    className="w-[120px]"
+                    className="w-full sm:w-[120px]"
                   />
-                  <span>to</span>
+                  <span className="hidden sm:block">to</span>
                   <Input
                     type="number"
                     placeholder="Max amount"
                     value={maxAmount}
                     onChange={(e) => setMaxAmount(e.target.value)}
-                    className="w-[120px]"
+                    className="w-full sm:w-[120px]"
                   />
                 </div>
 
-                <div className="flex gap-2 items-center">
+                {/* Date Range - Stack on mobile */}
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-[160px]"
+                    className="w-full sm:w-[160px]"
                   />
-                  <span>to</span>
+                  <span className="hidden sm:block">to</span>
                   <Input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-[160px]"
+                    className="w-full sm:w-[160px]"
                   />
                 </div>
               </div>
 
-              {/* Filtered Total Amount */}
-              <div className="flex flex-wrap gap-4 items-center">
-                <Card className="w-auto">
+              {/* Filtered Total - Responsive layout */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="col-span-full lg:col-span-3">
                   <CardHeader className="py-2 px-4">
-                    <div className="flex items-center gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <span className="text-sm font-medium text-muted-foreground">Filtered Total:</span>
-                        <span className="text-lg font-bold ml-2">
+                        <span className="text-sm font-medium text-muted-foreground block sm:inline">Total:</span>
+                        <span className="text-lg font-bold ml-0 sm:ml-2 block sm:inline">
                           {formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
                         </span>
                       </div>
-                      <div className="h-8 w-px bg-border" />
                       <div>
-                        <span className="text-sm font-medium text-muted-foreground">Average:</span>
-                        <span className="text-lg font-bold ml-2">
+                        <span className="text-sm font-medium text-muted-foreground block sm:inline">Average:</span>
+                        <span className="text-lg font-bold ml-0 sm:ml-2 block sm:inline">
                           {formatCurrency(filteredExpenses.length ? 
                             filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0) / filteredExpenses.length : 0
                           )}
                         </span>
                       </div>
-                      <div className="h-8 w-px bg-border" />
                       <div>
-                        <span className="text-sm font-medium text-muted-foreground">Count:</span>
-                        <span className="text-lg font-bold ml-2">{filteredExpenses.length}</span>
+                        <span className="text-sm font-medium text-muted-foreground block sm:inline">Count:</span>
+                        <span className="text-lg font-bold ml-0 sm:ml-2 block sm:inline">{filteredExpenses.length}</span>
                       </div>
                     </div>
                   </CardHeader>
                 </Card>
-                <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+                <Button 
+                  variant="outline" 
+                  onClick={handleExport} 
+                  disabled={isExporting}
+                  className="w-full"
+                >
                   {isExporting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -899,86 +870,88 @@ export default function Dashboard() {
                   ) : (
                     <>
                       <FileText className="h-4 w-4 mr-2" />
-                      Export to CSV
+                      Export
                     </>
                   )}
                 </Button>
               </div>
             </div>
-            </CardHeader>
-            <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Person</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredExpenses.length === 0 ? (
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="min-w-[800px] px-4 md:px-0">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">No expenses found</TableCell>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Person</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredExpenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                        <TableCell className="capitalize">{expense.category}</TableCell>
-                        <TableCell>{expense.description || '-'}</TableCell>
-                        <TableCell>{expense.vendor ? `${expense.vendor.name} (${expense.vendor.type})` : '-'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className={clsx(
-                              "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                              {
-                                "bg-green-100 text-green-700": expense.amount < 1000,
-                                "bg-yellow-100 text-yellow-700": expense.amount >= 1000 && expense.amount < 5000,
-                                "bg-red-100 text-red-700": expense.amount >= 5000,
-                              }
-                            )}>
-                              {expense.amount < 1000 ? "Low" : expense.amount < 5000 ? "Medium" : "High"}
-                            </span>
-                            {formatCurrency(expense.amount)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditExpense(expense)}>
-                              <Pencil className="h-4 w-4 text-blue-500" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this expense? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteExpense(expense.id)} className="bg-red-500 hover:bg-red-600">
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredExpenses.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center">No expenses found</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      filteredExpenses.map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
+                          <TableCell className="capitalize">{expense.category}</TableCell>
+                          <TableCell>{expense.description || '-'}</TableCell>
+                          <TableCell>{expense.vendor ? `${expense.vendor.name} (${expense.vendor.type})` : '-'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className={clsx(
+                                "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap",
+                                {
+                                  "bg-green-100 text-green-700": expense.amount < 1000,
+                                  "bg-yellow-100 text-yellow-700": expense.amount >= 1000 && expense.amount < 5000,
+                                  "bg-red-100 text-red-700": expense.amount >= 5000,
+                                }
+                              )}>
+                                {expense.amount < 1000 ? "Low" : expense.amount < 5000 ? "Medium" : "High"}
+                              </span>
+                              <span className="whitespace-nowrap">{formatCurrency(expense.amount)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditExpense(expense)}>
+                                <Pencil className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this expense? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteExpense(expense.id)} className="bg-red-500 hover:bg-red-600">
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
