@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Loader2, TrendingUp, TrendingDown, IndianRupee, Calendar, Search, X, Pencil, CalendarIcon, PlusCircle, ChevronsUpDown } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, IndianRupee, Calendar, Search, X, Pencil, CalendarIcon, PlusCircle, ChevronsUpDown, FileText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,11 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { CommandPalette } from "@/components/command-palette";
+import { exportToCSV } from "@/lib/export";
+import { useToast } from "@/components/ui/use-toast";
+import { SpeedDial } from "@/components/speed-dial";
+import { clsx } from "clsx";
 
 interface Expense {
   id: string;
@@ -130,6 +135,13 @@ export default function Dashboard() {
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
 
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Add to the state declarations at the top
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate("/auth");
@@ -145,15 +157,21 @@ export default function Dashboard() {
   }, [expenses, categoryFilter, vendorFilter, vendorTypeFilter, minAmount, maxAmount, startDate, endDate, searchTerm]);
 
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command/Ctrl + K for command palette
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setSearchDialogOpen(true);
       }
+      // Command/Ctrl + N for new expense
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        setIsAddingExpense(true);
+      }
     };
 
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const fetchVendors = async () => {
@@ -371,6 +389,7 @@ export default function Dashboard() {
     if (!editingExpense) return;
 
     try {
+      setIsSubmitting(true);
       const { error } = await supabase
         .from("expenses")
         .update({
@@ -387,8 +406,19 @@ export default function Dashboard() {
       setIsEditingExpense(false);
       setEditingExpense(null);
       fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense updated successfully",
+      });
     } catch (error) {
       console.error('Error updating expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update expense",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -452,8 +482,9 @@ export default function Dashboard() {
     e.preventDefault();
 
     try {
+      setIsSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
- 
+
       if (!user) throw new Error("You must be logged in to add expenses");
       
       const { error } = await supabase.from("expenses").insert({
@@ -474,8 +505,19 @@ export default function Dashboard() {
       setNewDate(format(new Date(), 'yyyy-MM-dd'));
       setIsAddingExpense(false);
       fetchExpenses();
+      toast({
+        title: "Success",
+        description: "Expense added successfully",
+      });
     } catch (error: any) {
       console.error('Error adding expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add expense",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -557,6 +599,26 @@ export default function Dashboard() {
     }
   };
 
+  // Export functionality
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      exportToCSV(expenses, `expenses-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      toast({
+        title: "Export Successful",
+        description: "Your expenses have been exported to CSV.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "There was an error exporting your expenses.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -602,6 +664,15 @@ export default function Dashboard() {
             <CardContent>
               <div className={`text-2xl font-bold ${monthlyChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {monthlyChange.toFixed(1)}%
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                vs last month: {" "}
+                <span className={clsx(
+                  "font-medium",
+                  monthlyChange >= 0 ? "text-green-600" : "text-red-600"
+                )}>
+                  {monthlyChange >= 0 ? "+" : ""}{monthlyChange.toFixed(1)}%
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -792,17 +863,46 @@ export default function Dashboard() {
               </div>
 
               {/* Filtered Total Amount */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-4 items-center">
                 <Card className="w-auto">
                   <CardHeader className="py-2 px-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Filtered Total:</span>
-                      <span className="text-lg font-bold">
-                        {formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
-                      </span>
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Filtered Total:</span>
+                        <span className="text-lg font-bold ml-2">
+                          {formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
+                        </span>
+                      </div>
+                      <div className="h-8 w-px bg-border" />
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Average:</span>
+                        <span className="text-lg font-bold ml-2">
+                          {formatCurrency(filteredExpenses.length ? 
+                            filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0) / filteredExpenses.length : 0
+                          )}
+                        </span>
+                      </div>
+                      <div className="h-8 w-px bg-border" />
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Count:</span>
+                        <span className="text-lg font-bold ml-2">{filteredExpenses.length}</span>
+                      </div>
                     </div>
                   </CardHeader>
                 </Card>
+                <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export to CSV
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
             </CardHeader>
@@ -831,7 +931,21 @@ export default function Dashboard() {
                         <TableCell className="capitalize">{expense.category}</TableCell>
                         <TableCell>{expense.description || '-'}</TableCell>
                         <TableCell>{expense.vendor ? `${expense.vendor.name} (${expense.vendor.type})` : '-'}</TableCell>
-                        <TableCell>{formatCurrency(expense.amount)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className={clsx(
+                              "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+                              {
+                                "bg-green-100 text-green-700": expense.amount < 1000,
+                                "bg-yellow-100 text-yellow-700": expense.amount >= 1000 && expense.amount < 5000,
+                                "bg-red-100 text-red-700": expense.amount >= 5000,
+                              }
+                            )}>
+                              {expense.amount < 1000 ? "Low" : expense.amount < 5000 ? "Medium" : "High"}
+                            </span>
+                            {formatCurrency(expense.amount)}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="ghost" size="icon" onClick={() => handleEditExpense(expense)}>
@@ -869,13 +983,11 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Floating Action Button */}
-        <Button
-          className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
-          onClick={() => setIsAddingExpense(true)}
-        >
-          <PlusCircle className="h-8 w-8" />
-        </Button>
+        {/* Replace the floating action button with SpeedDial */}
+        <SpeedDial
+          onAddExpense={() => setIsAddingExpense(true)}
+          onExport={handleExport}
+        />
 
         {/* Add Expense Dialog */}
         <Dialog open={isAddingExpense} onOpenChange={setIsAddingExpense}>
@@ -1014,8 +1126,15 @@ export default function Dashboard() {
                 <Button type="button" variant="outline" onClick={() => setIsAddingExpense(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  Add Expense
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Expense"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -1081,6 +1200,28 @@ export default function Dashboard() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Command Palette */}
+        <CommandPalette
+          open={commandPaletteOpen}
+          setOpen={setCommandPaletteOpen}
+          onAddExpense={() => setIsAddingExpense(true)}
+        />
+
+        {/* Export Button */}
+        <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+          {isExporting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <FileText className="h-4 w-4 mr-2" />
+              Export to CSV
+            </>
+          )}
+        </Button>
       </div>
 
       <Dialog open={isEditingExpense} onOpenChange={setIsEditingExpense}>
@@ -1240,8 +1381,19 @@ export default function Dashboard() {
               <Button type="button" variant="outline" onClick={() => setIsEditingExpense(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
-                Save Changes
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="relative"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="ml-2">Saving...</span>
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </DialogFooter>
           </form>
