@@ -158,13 +158,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Command/Ctrl + K for command palette
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // Command/Ctrl + K for search
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setSearchDialogOpen(true);
+        setSearchDialogOpen((open) => !open);
       }
       // Command/Ctrl + N for new expense
-      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         setIsAddingExpense(true);
       }
@@ -737,6 +737,39 @@ export default function Dashboard() {
                   Reset
                 </Button>
               </div>
+
+              {/* Search Dialog */}
+              <CommandDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
+                <CommandInput 
+                  placeholder="Search expenses..."
+                  onValueChange={(search) => {
+                    setSearchSuggestions(generateSearchSuggestions(search));
+                  }}
+                />
+                <CommandList>
+                  <CommandEmpty>No results found.</CommandEmpty>
+                  {searchSuggestions.length > 0 && (
+                    <>
+                      <CommandGroup heading="Suggestions">
+                        {searchSuggestions.map((suggestion, index) => (
+                          <CommandItem
+                            key={`${suggestion.type}-${index}`}
+                            value={suggestion.searchValue}
+                            onSelect={() => handleSearchSelect(suggestion)}
+                          >
+                            {suggestion.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </>
+                  )}
+                  <CommandSeparator />
+                  <CommandGroup heading="Tips">
+                    <CommandItem>Search by category, person, amount, or description</CommandItem>
+                    <CommandItem>Use ⌘+K to quickly open search</CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </CommandDialog>
 
               {/* Filters - Stack on mobile, wrap on tablet+ */}
               <div className="flex flex-col sm:flex-row flex-wrap gap-4">
