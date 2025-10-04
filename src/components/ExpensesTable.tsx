@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Expense } from "@/types/expense";
 import { clsx } from "clsx";
+import { ExpensesTableTotal } from "./ExpensesTableTotal";
 
 interface ExpensesTableProps {
   expenses: Expense[];
@@ -125,6 +126,7 @@ export function ExpensesTable({ expenses, onEdit, onDelete, loading = false }: E
         columns={columns}
         data={expenses}
       />
+      <ExpensesTableTotal expenses={expenses} />
     </div>
   );
 };

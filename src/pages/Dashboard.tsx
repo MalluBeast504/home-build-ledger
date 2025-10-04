@@ -383,6 +383,29 @@ export default function Dashboard() {
       );
 
       // Calculate category totals and prepare pie chart data
+      // Group expenses by month for the monthly trend chart
+      const monthlyMap = expenses.reduce((acc, expense) => {
+        const date = new Date(expense.date);
+        const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        acc[monthYear] = (acc[monthYear] || 0) + expense.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Get last 6 months for trend
+      const lastSixMonths: MonthlyTotal[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        const monthName = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+        lastSixMonths.push({
+          month: monthName,
+          total: monthlyMap[monthYear] || 0
+        });
+      }
+
+      setMonthlyTrend(lastSixMonths);
+
       const categoryMap = expenses.reduce((acc, expense) => {
         acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
         return acc;
@@ -709,12 +732,83 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-4 md:space-y-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Spent</p>
+                  <h3 className="text-2xl font-bold">{formatCurrency(totalSpent)}</h3>
+                </div>
+                <div className="rounded-lg bg-blue-100 p-3">
+                  <IndianRupee className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">This Month</p>
+                  <h3 className="text-2xl font-bold">{formatCurrency(monthlySpent)}</h3>
+                </div>
+                <div className="rounded-lg bg-green-100 p-3">
+                  <Calendar className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Month-over-Month</p>
+                  <h3 className={`text-2xl font-bold ${monthlyChange >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    {monthlyChange >= 0 ? (
+                      <span className="flex items-center">
+                        <TrendingUp className="mr-1 h-5 w-5" /> {monthlyChange.toFixed(2)}%
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        <TrendingDown className="mr-1 h-5 w-5" /> {Math.abs(monthlyChange).toFixed(2)}%
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <div className="rounded-lg bg-purple-100 p-3">
+                  {monthlyChange >= 0 ? (
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  ) : (
+                    <TrendingDown className="h-6 w-6 text-purple-600" />
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
+                  <h3 className="text-2xl font-bold">{expenses.length}</h3>
+                </div>
+                <div className="rounded-lg bg-orange-100 p-3">
+                  <FileText className="h-6 w-6 text-orange-60" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
+          <Card className="md:col-span-4">
             <CardHeader>
-              <CardTitle>Overview</CardTitle>
+              <CardTitle>Monthly Spending Trend</CardTitle>
             </CardHeader>
-            <CardContent className="pl-2">
+            <CardContent>
               <ChartContainer
                 config={{
                   total: {
@@ -730,20 +824,24 @@ export default function Dashboard() {
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
+                    tickFormatter={(value) => value}
                   />
                   <YAxis
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    tickFormatter={(value) => `$${value / 1000}k`}
+                    tickFormatter={(value) => `₹${value / 1000}k`}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
                   />
                   <Bar dataKey="total" fill="var(--color-total)" radius={4} />
                 </BarChart>
               </ChartContainer>
             </CardContent>
           </Card>
-          <Card className="col-span-3">
+          <Card className="md:col-span-3">
             <CardHeader>
               <CardTitle>Expense Distribution</CardTitle>
             </CardHeader>
