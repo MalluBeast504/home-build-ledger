@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Loader2, TrendingUp, TrendingDown, IndianRupee, Calendar, Search, X, Pencil, CalendarIcon, PlusCircle, ChevronsUpDown, FileText } from "lucide-react";
-import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
+import { Loader2, TrendingUp, TrendingDown, IndianRupee, Calendar, Search, X, Pencil, CalendarIcon, PlusCircle, ChevronsUpDown, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,12 +13,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectGroup,
+ SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
 import { Constants } from "@/integrations/supabase/types";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -40,15 +37,8 @@ import { exportToCSV } from "@/lib/export";
 import { useToast } from "@/components/ui/use-toast";
 import { SpeedDial } from "@/components/speed-dial";
 import { clsx } from "clsx";
-
-interface Expense {
-  id: string;
-  amount: number;
-  category: string;
-  date: string;
-  description: string;
-  vendor: { name: string; type: string; id: string } | null;
-}
+import { ExpensesTable } from "@/components/ExpensesTable";
+import { Expense } from "@/types/expense";
 
 interface CategoryTotal {
   category: string;
@@ -912,79 +902,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto -mx-4 md:mx-0">
-              <div className="min-w-[800px] px-4 md:px-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Person</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredExpenses.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center">No expenses found</TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredExpenses.map((expense) => (
-                        <TableRow key={expense.id}>
-                          <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                          <TableCell className="capitalize">{expense.category}</TableCell>
-                          <TableCell>{expense.description || '-'}</TableCell>
-                          <TableCell>{expense.vendor ? `${expense.vendor.name} (${expense.vendor.type})` : '-'}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className={clsx(
-                                "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap",
-                                {
-                                  "bg-green-100 text-green-700": expense.amount < 1000,
-                                  "bg-yellow-100 text-yellow-700": expense.amount >= 1000 && expense.amount < 5000,
-                                  "bg-red-100 text-red-700": expense.amount >= 5000,
-                                }
-                              )}>
-                                {expense.amount < 1000 ? "Low" : expense.amount < 5000 ? "Medium" : "High"}
-                              </span>
-                              <span className="whitespace-nowrap">{formatCurrency(expense.amount)}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" onClick={() => handleEditExpense(expense)}>
-                                <Pencil className="h-4 w-4 text-blue-500" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Expense</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete this expense? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteExpense(expense.id)} className="bg-red-500 hover:bg-red-600">
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              <ExpensesTable
+                expenses={filteredExpenses}
+                onEdit={handleEditExpense}
+                onDelete={deleteExpense}
+                loading={loading}
+              />
             </div>
           </CardContent>
         </Card>
