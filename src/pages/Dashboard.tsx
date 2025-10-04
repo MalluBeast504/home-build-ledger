@@ -84,6 +84,7 @@ import { clsx } from "clsx";
 import { ExpensesTable } from "@/components/ExpensesTable";
 import { Expense } from "@/types/expense";
 import { Label } from "@/components/ui/label";
+import { ExpenseFilters } from "@/components/ExpenseFilters";
 
 interface CategoryTotal {
   category: string;
@@ -809,128 +810,30 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Expenses</CardTitle>
-            <Collapsible className="w-full">
-              <CollapsibleTrigger asChild>
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                      onClick={() => setSearchDialogOpen(true)}
-                    >
-                      <Search className="mr-2 h-4 w-4" />
-                      <span>Search...</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={resetFilters}
-                      className="w-full sm:w-auto"
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <ChevronsUpDown className="h-4 w-4" />
-                    <span className="sr-only">Toggle</span>
-                  </Button>
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 pt-4">
-                <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={setCategoryFilter}
-                  >
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectGroup>
-                        <SelectLabel>Predefined Categories</SelectLabel>
-                        {Constants.public.Enums.expense_category.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                      {newCustomCategories.length > 0 && (
-                        <SelectGroup>
-                          <SelectLabel>Custom Categories</SelectLabel>
-                          {newCustomCategories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.name}>
-                              {cat.name.charAt(0).toUpperCase() +
-                                cat.name.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      )}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={vendorFilter} onValueChange={setVendorFilter}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Person" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All People</SelectItem>
-                      {vendors.map((vendor) => (
-                        <SelectItem key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={vendorTypeFilter}
-                    onValueChange={setVendorTypeFilter}
-                  >
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="engineer">Engineer</SelectItem>
-                      <SelectItem value="contractor">Contractor</SelectItem>
-                      <SelectItem value="supplier">Supplier</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <Input
-                      type="number"
-                      placeholder="Min amount"
-                      value={minAmount}
-                      onChange={(e) => setMinAmount(e.target.value)}
-                      className="w-full sm:w-[120px]"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Max amount"
-                      value={maxAmount}
-                      onChange={(e) => setMaxAmount(e.target.value)}
-                      className="w-full sm:w-[120px]"
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full sm:w-[160px]"
-                    />
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full sm:w-[160px]"
-                    />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="w-full">
+              <ExpenseFilters
+                categoryFilter={categoryFilter}
+                vendorFilter={vendorFilter}
+                vendorTypeFilter={vendorTypeFilter}
+                minAmount={minAmount}
+                maxAmount={maxAmount}
+                startDate={startDate}
+                endDate={endDate}
+                searchTerm={searchTerm}
+                onCategoryChange={setCategoryFilter}
+                onVendorChange={setVendorFilter}
+                onVendorTypeChange={setVendorTypeFilter}
+                onMinAmountChange={setMinAmount}
+                onMaxAmountChange={setMaxAmount}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+                onSearchTermChange={setSearchTerm}
+                onResetFilters={resetFilters}
+                vendors={vendors}
+                customCategories={newCustomCategories.map(cat => cat.name)}
+                onSearchDialogOpen={() => setSearchDialogOpen(true)}
+              />
+            </div>
 
             <CommandDialog
               open={searchDialogOpen}
