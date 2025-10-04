@@ -59,7 +59,7 @@ export async function exportToPDF(data: Expense[], filename: string) {
   const font = await fontResponse.arrayBuffer();
   const fontBase64 = btoa(new Uint8Array(font).reduce((data, byte) => data + String.fromCharCode(byte), ''));
   
-  doc.addFileToVFS('NotoSansMalayalam.ttf', fontBase64);
+ doc.addFileToVFS('NotoSansMalayalam.ttf', fontBase64);
   doc.addFont('NotoSansMalayalam.ttf', 'NotoSansMalayalam', 'normal');
   doc.setFont('NotoSansMalayalam');
 
@@ -104,6 +104,38 @@ export async function exportToPDF(data: Expense[], filename: string) {
         fillColor: [240, 240, 240], // Light gray for alternate rows
       },
     });
+    
+    // Calculate summary data
+    const totalAmount = data.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+    const startDate = data.length > 0
+      ? new Date(Math.min(...data.map(e => new Date(e.date).getTime())))
+      : null;
+    const endDate = data.length > 0
+      ? new Date(Math.max(...data.map(e => new Date(e.date).getTime())))
+      : null;
+    const totalEntries = data.length;
+    
+    // Add summary section after the table
+    const finalY = (doc as any).lastAutoTable.finalY || 40;
+    let summaryY = finalY + 20;
+    
+    // Add summary title
+    doc.setFontSize(14);
+    doc.text("Summary", 14, summaryY);
+    summaryY += 10;
+    
+    // Add summary data
+    doc.setFontSize(10);
+    doc.text(`Total Entries: ${totalEntries}`, 14, summaryY);
+    doc.text(`Period: ${startDate ? startDate.toLocaleDateString() : 'N/A'} to ${endDate ? endDate.toLocaleDateString() : 'N/A'}`, 14, summaryY + 8);
+    doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 14, summaryY + 16);
+    
+    // Add some spacing before the footer
+    summaryY += 24;
+    
+    // Optional: Add a horizontal line before the summary
+    doc.setDrawColor(0, 0, 0);
+    doc.line(14, summaryY - 28, 200, summaryY - 28);
   } else {
     console.warn("No data to export to PDF.");
   }

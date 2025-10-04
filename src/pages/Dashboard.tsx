@@ -85,6 +85,7 @@ import { ExpensesTable } from "@/components/ExpensesTable";
 import { Expense } from "@/types/expense";
 import { Label } from "@/components/ui/label";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 
 interface CategoryTotal {
   category: string;
@@ -184,6 +185,7 @@ export default function Dashboard() {
   // Add to the state declarations at the top
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+ const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -690,28 +692,9 @@ export default function Dashboard() {
 
   // Export functionality
   const handleExport = async () => {
-    try {
-      setIsExporting(true);
-      await exportToPDF(
-        expenses,
-        `expenses-${format(new Date(), "yyyy-MM-dd")}.pdf`
-      );
-      toast({
-        title: "Export Successful",
-        description: "Your expenses have been exported to PDF.",
-      });
-    } catch (error) {
-      console.error("Error during PDF export:", error); // Add this line
-      toast({
-        title: "Export Failed",
-        description:
-          "There was an error exporting your expenses. Check console for details.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
+    // Instead of directly exporting, open the preview modal with filtered expenses
+    setIsPdfPreviewOpen(true);
+ };
 
   if (loading) {
     return (
@@ -1115,6 +1098,14 @@ export default function Dashboard() {
           open={commandPaletteOpen}
           setOpen={setCommandPaletteOpen}
           onAddExpense={() => setIsAddingExpense(true)}
+        />
+        
+        {/* PDF Preview Modal */}
+        <PdfPreviewModal
+          open={isPdfPreviewOpen}
+          onOpenChange={setIsPdfPreviewOpen}
+          expenses={filteredExpenses}
+          onClose={() => setIsPdfPreviewOpen(false)}
         />
       </div>
 
