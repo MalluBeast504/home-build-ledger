@@ -3,8 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Loader2, TrendingUp, TrendingDown, IndianRupee, Calendar, Search, X, Pencil, CalendarIcon, PlusCircle, ChevronsUpDown, FileText, Trash2 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Cell,
+} from "recharts";
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  IndianRupee,
+  Calendar,
+  Search,
+  X,
+  Pencil,
+  CalendarIcon,
+  PlusCircle,
+  ChevronsUpDown,
+  FileText,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,15 +36,32 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
- SelectGroup,
+  SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
 import { Constants } from "@/integrations/supabase/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
 import {
   Command,
   CommandDialog,
@@ -32,13 +72,18 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { CommandPalette } from "@/components/command-palette";
-import { exportToCSV } from "@/lib/export";
+import { exportToCSV, exportToPDF } from "@/lib/export";
 import { useToast } from "@/components/ui/use-toast";
-import { SpeedDial } from "@/components/speed-dial";
 import { clsx } from "clsx";
 import { ExpensesTable } from "@/components/ExpensesTable";
 import { Expense } from "@/types/expense";
+import { Label } from "@/components/ui/label";
 
 interface CategoryTotal {
   category: string;
@@ -77,7 +122,7 @@ interface CustomCategory {
 }
 
 interface SearchSuggestion {
-  type: 'category' | 'vendor' | 'amount' | 'date' | 'description';
+  type: "category" | "vendor" | "amount" | "date" | "description";
   value: string;
   label: string;
   searchValue: string;
@@ -98,20 +143,25 @@ export default function Dashboard() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [isEditingExpense, setIsEditingExpense] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<EditExpense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<EditExpense | null>(
+    null
+  );
   const [pieChartData, setPieChartData] = useState<PieChartData[]>([]);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [newAmount, setNewAmount] = useState("");
   const [newCategory, setNewCategory] = useState<string>("");
   const [newDescription, setNewDescription] = useState("");
   const [newVendorId, setNewVendorId] = useState<string>("");
-  const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [newCustomCategories, setNewCustomCategories] = useState<CustomCategory[]>([]);
+  const [newDate, setNewDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [newCustomCategories, setNewCustomCategories] = useState<
+    CustomCategory[]
+  >([]);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isAddingVendor, setIsAddingVendor] = useState(false);
   const [newVendorName, setNewVendorName] = useState("");
-  const [newVendorType, setNewVendorType] = useState<typeof VENDOR_TYPES[number]>("contractor");
+  const [newVendorType, setNewVendorType] =
+    useState<(typeof VENDOR_TYPES)[number]>("contractor");
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -123,7 +173,9 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<
+    SearchSuggestion[]
+  >([]);
 
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const { toast } = useToast();
@@ -144,24 +196,34 @@ export default function Dashboard() {
 
   useEffect(() => {
     applyFilters();
-  }, [expenses, categoryFilter, vendorFilter, vendorTypeFilter, minAmount, maxAmount, startDate, endDate, searchTerm]);
+  }, [
+    expenses,
+    categoryFilter,
+    vendorFilter,
+    vendorTypeFilter,
+    minAmount,
+    maxAmount,
+    startDate,
+    endDate,
+    searchTerm,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Command/Ctrl + K for search
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearchDialogOpen((open) => !open);
       }
       // Command/Ctrl + N for new expense
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
         setIsAddingExpense(true);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const fetchVendors = async () => {
@@ -170,11 +232,11 @@ export default function Dashboard() {
         .from("vendors")
         .select("*")
         .order("name");
-      
+
       if (error) throw error;
       setVendors(data);
     } catch (error) {
-      console.error('Error fetching vendors:', error);
+      console.error("Error fetching vendors:", error);
     }
   };
 
@@ -184,11 +246,11 @@ export default function Dashboard() {
         .from("custom_categories")
         .select("*")
         .order("name");
-      
+
       if (error) throw error;
       setNewCustomCategories(data);
     } catch (error: any) {
-      console.error('Error fetching custom categories:', error);
+      console.error("Error fetching custom categories:", error);
     }
   };
 
@@ -197,42 +259,53 @@ export default function Dashboard() {
 
     // Category filter
     if (categoryFilter !== "all") {
-      filtered = filtered.filter(expense => expense.category === categoryFilter);
+      filtered = filtered.filter(
+        (expense) => expense.category === categoryFilter
+      );
     }
 
     // Vendor filter
     if (vendorFilter !== "all") {
-      filtered = filtered.filter(expense => expense.vendor?.id === vendorFilter);
+      filtered = filtered.filter(
+        (expense) => expense.vendor?.id === vendorFilter
+      );
     }
 
     // Vendor type filter
     if (vendorTypeFilter !== "all") {
-      filtered = filtered.filter(expense => expense.vendor?.type === vendorTypeFilter);
+      filtered = filtered.filter(
+        (expense) => expense.vendor?.type === vendorTypeFilter
+      );
     }
 
     // Amount range filter
     if (minAmount) {
-      filtered = filtered.filter(expense => expense.amount >= parseFloat(minAmount));
+      filtered = filtered.filter(
+        (expense) => expense.amount >= parseFloat(minAmount)
+      );
     }
     if (maxAmount) {
-      filtered = filtered.filter(expense => expense.amount <= parseFloat(maxAmount));
+      filtered = filtered.filter(
+        (expense) => expense.amount <= parseFloat(maxAmount)
+      );
     }
 
     // Date range filter
     if (startDate) {
-      filtered = filtered.filter(expense => expense.date >= startDate);
+      filtered = filtered.filter((expense) => expense.date >= startDate);
     }
     if (endDate) {
-      filtered = filtered.filter(expense => expense.date <= endDate);
+      filtered = filtered.filter((expense) => expense.date <= endDate);
     }
 
     // Search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(expense => 
-        expense.description?.toLowerCase().includes(term) ||
-        expense.category.toLowerCase().includes(term) ||
-        expense.vendor?.name.toLowerCase().includes(term)
+      filtered = filtered.filter(
+        (expense) =>
+          expense.description?.toLowerCase().includes(term) ||
+          expense.category.toLowerCase().includes(term) ||
+          expense.vendor?.name.toLowerCase().includes(term)
       );
     }
 
@@ -255,7 +328,7 @@ export default function Dashboard() {
       const { data: expensesData, error } = await supabase
         .from("expenses")
         .select("*, vendor:vendors(id, name, type)")
-        .order('date', { ascending: false });
+        .order("date", { ascending: false });
 
       if (error) throw error;
 
@@ -274,23 +347,37 @@ export default function Dashboard() {
       const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
       const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-      const currentMonthExpenses = expenses.filter(expense => {
+      const currentMonthExpenses = expenses.filter((expense) => {
         const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === currentMonth && 
-               expenseDate.getFullYear() === currentYear;
+        return (
+          expenseDate.getMonth() === currentMonth &&
+          expenseDate.getFullYear() === currentYear
+        );
       });
 
-      const lastMonthExpenses = expenses.filter(expense => {
+      const lastMonthExpenses = expenses.filter((expense) => {
         const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === lastMonth && 
-               expenseDate.getFullYear() === lastMonthYear;
+        return (
+          expenseDate.getMonth() === lastMonth &&
+          expenseDate.getFullYear() === lastMonthYear
+        );
       });
 
-      const currentMonthTotal = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-      const lastMonthTotal = lastMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const currentMonthTotal = currentMonthExpenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0
+      );
+      const lastMonthTotal = lastMonthExpenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0
+      );
 
       setMonthlySpent(currentMonthTotal);
-      setMonthlyChange(lastMonthTotal === 0 ? 0 : ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
+      setMonthlyChange(
+        lastMonthTotal === 0
+          ? 0
+          : ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100
+      );
 
       // Calculate category totals and prepare pie chart data
       const categoryMap = expenses.reduce((acc, expense) => {
@@ -298,29 +385,32 @@ export default function Dashboard() {
         return acc;
       }, {} as Record<string, number>);
 
-      const sortedCategories = Object.entries(categoryMap)
-        .sort(([, a], [, b]) => b - a);
+      const sortedCategories = Object.entries(categoryMap).sort(
+        ([, a], [, b]) => b - a
+      );
 
-      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
-      
+      const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"];
+
       let pieData: PieChartData[] = [];
-      
+
       // Add top 3 categories
       sortedCategories.slice(0, 3).forEach(([category, value], index) => {
         pieData.push({
           name: category.charAt(0).toUpperCase() + category.slice(1),
           value,
-          color: colors[index]
+          color: colors[index],
         });
       });
-      
+
       // Sum up the rest as "Other"
-      const otherValue = sortedCategories.slice(3).reduce((sum, [, value]) => sum + value, 0);
+      const otherValue = sortedCategories
+        .slice(3)
+        .reduce((sum, [, value]) => sum + value, 0);
       if (otherValue > 0) {
         pieData.push({
-          name: 'Other',
+          name: "Other",
           value: otherValue,
-          color: colors[3]
+          color: colors[3],
         });
       }
 
@@ -328,37 +418,34 @@ export default function Dashboard() {
       setCategoryTotals(
         Object.entries(categoryMap).map(([category, total]) => ({
           category,
-          total
+          total,
         }))
       );
 
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      console.error("Error fetching expenses:", error);
       setLoading(false);
     }
   };
 
   const deleteExpense = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("expenses")
-        .delete()
-        .eq('id', id);
-      
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
+
       if (error) throw error;
-      
+
       // Refresh the expenses list
       fetchExpenses();
     } catch (error) {
-      console.error('Error deleting expense:', error);
+      console.error("Error deleting expense:", error);
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -369,7 +456,7 @@ export default function Dashboard() {
       category: expense.category,
       description: expense.description || "",
       date: expense.date,
-      vendor_id: expense.vendor?.id || null
+      vendor_id: expense.vendor?.id || null,
     });
     setIsEditingExpense(true);
   };
@@ -387,9 +474,9 @@ export default function Dashboard() {
           category: editingExpense.category,
           description: editingExpense.description,
           date: editingExpense.date,
-          vendor_id: editingExpense.vendor_id
+          vendor_id: editingExpense.vendor_id,
         })
-        .eq('id', editingExpense.id);
+        .eq("id", editingExpense.id);
 
       if (error) throw error;
 
@@ -401,7 +488,7 @@ export default function Dashboard() {
         description: "Expense updated successfully",
       });
     } catch (error) {
-      console.error('Error updating expense:', error);
+      console.error("Error updating expense:", error);
       toast({
         title: "Error",
         description: "Failed to update expense",
@@ -416,15 +503,15 @@ export default function Dashboard() {
     if (!newCategoryName.trim()) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("You must be logged in to add categories");
 
-      const { error } = await supabase
-        .from("custom_categories")
-        .insert({
-          name: newCategoryName.trim(),
-          user_id: user.id,
-        });
+      const { error } = await supabase.from("custom_categories").insert({
+        name: newCategoryName.trim(),
+        user_id: user.id,
+      });
 
       if (error) throw error;
 
@@ -432,7 +519,7 @@ export default function Dashboard() {
       setIsAddingCategory(false);
       fetchCustomCategories();
     } catch (error: any) {
-      console.error('Error adding category:', error);
+      console.error("Error adding category:", error);
     }
   };
 
@@ -440,7 +527,9 @@ export default function Dashboard() {
     if (!newVendorName.trim()) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("You must be logged in to add vendors");
 
       const { data, error } = await supabase
@@ -458,13 +547,13 @@ export default function Dashboard() {
       setNewVendorName("");
       setIsAddingVendor(false);
       fetchVendors();
-      
+
       // Auto-select the newly created vendor
       if (data) {
         setNewVendorId(data.id);
       }
     } catch (error: any) {
-      console.error('Error adding vendor:', error);
+      console.error("Error adding vendor:", error);
     }
   };
 
@@ -473,26 +562,28 @@ export default function Dashboard() {
 
     try {
       setIsSubmitting(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) throw new Error("You must be logged in to add expenses");
-      
+
       const { error } = await supabase.from("expenses").insert({
         amount: parseFloat(newAmount),
         category: newCategory,
         description: newDescription,
         vendor_id: newVendorId || null,
         date: newDate,
-        user_id: user.id
+        user_id: user.id,
       });
 
       if (error) throw error;
-      
+
       setNewAmount("");
       setNewCategory("");
       setNewDescription("");
       setNewVendorId("");
-      setNewDate(format(new Date(), 'yyyy-MM-dd'));
+      setNewDate(format(new Date(), "yyyy-MM-dd"));
       setIsAddingExpense(false);
       fetchExpenses();
       toast({
@@ -500,7 +591,7 @@ export default function Dashboard() {
         description: "Expense added successfully",
       });
     } catch (error: any) {
-      console.error('Error adding expense:', error);
+      console.error("Error adding expense:", error);
       toast({
         title: "Error",
         description: "Failed to add expense",
@@ -516,27 +607,32 @@ export default function Dashboard() {
     const lowercaseSearch = searchValue.toLowerCase();
 
     // Category suggestions
-    const allCategories = [...Constants.public.Enums.expense_category, ...newCustomCategories.map(c => c.name)];
-    allCategories.forEach(category => {
+    const allCategories = [
+      ...Constants.public.Enums.expense_category,
+      ...newCustomCategories.map((c) => c.name),
+    ];
+    allCategories.forEach((category) => {
       if (category.toLowerCase().includes(lowercaseSearch)) {
         suggestions.push({
-          type: 'category',
+          type: "category",
           value: category,
           label: `Category: ${category}`,
-          searchValue: category
+          searchValue: category,
         });
       }
     });
 
     // Vendor suggestions
-    vendors.forEach(vendor => {
-      if (vendor.name.toLowerCase().includes(lowercaseSearch) || 
-          vendor.type.toLowerCase().includes(lowercaseSearch)) {
+    vendors.forEach((vendor) => {
+      if (
+        vendor.name.toLowerCase().includes(lowercaseSearch) ||
+        vendor.type.toLowerCase().includes(lowercaseSearch)
+      ) {
         suggestions.push({
-          type: 'vendor',
+          type: "vendor",
           value: vendor.id,
           label: `Person: ${vendor.name} (${vendor.type})`,
-          searchValue: `${vendor.name} ${vendor.type}`
+          searchValue: `${vendor.name} ${vendor.type}`,
         });
       }
     });
@@ -544,22 +640,24 @@ export default function Dashboard() {
     // Amount suggestions
     if (!isNaN(parseFloat(searchValue))) {
       suggestions.push({
-        type: 'amount',
+        type: "amount",
         value: searchValue,
         label: `Amount: ${formatCurrency(parseFloat(searchValue))}`,
-        searchValue: searchValue
+        searchValue: searchValue,
       });
     }
 
     // Description suggestions from existing expenses
-    const uniqueDescriptions = new Set(expenses.map(e => e.description).filter(Boolean));
-    uniqueDescriptions.forEach(description => {
+    const uniqueDescriptions = new Set(
+      expenses.map((e) => e.description).filter(Boolean)
+    );
+    uniqueDescriptions.forEach((description) => {
       if (description?.toLowerCase().includes(lowercaseSearch)) {
         suggestions.push({
-          type: 'description',
+          type: "description",
           value: description,
           label: `Description: ${description}`,
-          searchValue: description
+          searchValue: description,
         });
       }
     });
@@ -569,21 +667,21 @@ export default function Dashboard() {
 
   const handleSearchSelect = (suggestion: SearchSuggestion) => {
     setSearchDialogOpen(false);
-    
+
     // Apply the selected filter
     switch (suggestion.type) {
-      case 'category':
+      case "category":
         setCategoryFilter(suggestion.value);
         break;
-      case 'vendor':
+      case "vendor":
         setVendorFilter(suggestion.value);
         break;
-      case 'amount':
+      case "amount":
         const amount = parseFloat(suggestion.value);
         setMinAmount(amount.toString());
         setMaxAmount(amount.toString());
         break;
-      case 'description':
+      case "description":
         setSearchTerm(suggestion.value);
         break;
     }
@@ -593,15 +691,20 @@ export default function Dashboard() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      exportToCSV(expenses, `expenses-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      await exportToPDF(
+        expenses,
+        `expenses-${format(new Date(), "yyyy-MM-dd")}.pdf`
+      );
       toast({
         title: "Export Successful",
-        description: "Your expenses have been exported to CSV.",
+        description: "Your expenses have been exported to PDF.",
       });
     } catch (error) {
+      console.error("Error during PDF export:", error); // Add this line
       toast({
         title: "Export Failed",
-        description: "There was an error exporting your expenses.",
+        description:
+          "There was an error exporting your expenses. Check console for details.",
         variant: "destructive",
       });
     } finally {
@@ -622,82 +725,82 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-4 md:space-y-6">
-        {/* Key Metrics - Stack on mobile, grid on larger screens */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-              <IndianRupee className="h-4 w-4 text-muted-foreground" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Overview</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+            <CardContent className="pl-2">
+              <ChartContainer
+                config={{
+                  total: {
+                    label: "Total",
+                    color: "hsl(var(--chart-1))",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <BarChart data={monthlyTrend}>
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => value.slice(0, 3)}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => `$${value / 1000}k`}
+                  />
+                  <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                </BarChart>
+              </ChartContainer>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Spent</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold">{formatCurrency(monthlySpent)}</div>
-            </CardContent>
-          </Card>
-          <Card className="md:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Change</CardTitle>
-              {monthlyChange >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-500" />
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className={clsx(
-                "text-xl md:text-2xl font-bold",
-                monthlyChange >= 0 ? "text-green-500" : "text-red-500"
-              )}>
-                {monthlyChange.toFixed(1)}%
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                vs last month
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts - Adjust height for mobile */}
-        <div className="grid gap-4">
-          <Card>
+          <Card className="col-span-3">
             <CardHeader>
               <CardTitle>Expense Distribution</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] md:h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={({ name, percent }) => 
-                        window.innerWidth > 768 ? `${name} (${(percent * 100).toFixed(0)}%)` : `${(percent * 100).toFixed(0)}%`
-                      }
-                      labelLine={window.innerWidth > 768}
-                    >
-                      {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              <ChartContainer
+                config={{
+                  expenses: {
+                    label: "Expenses",
+                  },
+                  ...pieChartData.reduce(
+                    (acc, cur) => ({
+                      ...acc,
+                      [cur.name]: { label: cur.name, color: cur.color },
+                    }),
+                    {}
+                  ),
+                }}
+                className="mx-auto aspect-square h-[300px]"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Pie
+                    data={pieChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    strokeWidth={5}
+                  >
+                    {pieChartData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartLegend
+                    content={<ChartLegendContent nameKey="name" />}
+                    className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+                  />
+                </PieChart>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>
@@ -705,199 +808,175 @@ export default function Dashboard() {
         {/* Expense List */}
         <Card>
           <CardHeader>
-            <CardTitle>Expenses List</CardTitle>
-            <div className="space-y-4">
-              {/* Search and Reset - Stack on mobile */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    onClick={() => setSearchDialogOpen(true)}
-                  >
-                    <Search className="mr-2 h-4 w-4" />
-                    <span>Search expenses...</span>
-                    <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                      <span className="text-xs">⌘</span>K
-                    </kbd>
+            <CardTitle>Expenses</CardTitle>
+            <Collapsible className="w-full">
+              <CollapsibleTrigger asChild>
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      onClick={() => setSearchDialogOpen(true)}
+                    >
+                      <Search className="mr-2 h-4 w-4" />
+                      <span>Search...</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={resetFilters}
+                      className="w-full sm:w-auto"
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    <ChevronsUpDown className="h-4 w-4" />
+                    <span className="sr-only">Toggle</span>
                   </Button>
                 </div>
-                <Button variant="outline" onClick={resetFilters} className="w-full sm:w-auto">
-                  <X className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-              </div>
-
-              {/* Search Dialog */}
-              <CommandDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
-                <CommandInput 
-                  placeholder="Search expenses..."
-                  onValueChange={(search) => {
-                    setSearchSuggestions(generateSearchSuggestions(search));
-                  }}
-                />
-                <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  {searchSuggestions.length > 0 && (
-                    <>
-                      <CommandGroup heading="Suggestions">
-                        {searchSuggestions.map((suggestion, index) => (
-                          <CommandItem
-                            key={`${suggestion.type}-${index}`}
-                            value={suggestion.searchValue}
-                            onSelect={() => handleSearchSelect(suggestion)}
-                          >
-                            {suggestion.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </>
-                  )}
-                  <CommandSeparator />
-                  <CommandGroup heading="Tips">
-                    <CommandItem>Search by category, person, amount, or description</CommandItem>
-                    <CommandItem>Use ⌘+K to quickly open search</CommandItem>
-                  </CommandGroup>
-                </CommandList>
-              </CommandDialog>
-
-              {/* Filters - Stack on mobile, wrap on tablet+ */}
-              <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectGroup>
-                      <SelectLabel>Predefined Categories</SelectLabel>
-                      {Constants.public.Enums.expense_category.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    {newCustomCategories.length > 0 && (
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
                       <SelectGroup>
-                        <SelectLabel>Custom Categories</SelectLabel>
-                        {newCustomCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>
-                            {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
+                        <SelectLabel>Predefined Categories</SelectLabel>
+                        {Constants.public.Enums.expense_category.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
                           </SelectItem>
                         ))}
                       </SelectGroup>
-                    )}
-                  </SelectContent>
-                </Select>
+                      {newCustomCategories.length > 0 && (
+                        <SelectGroup>
+                          <SelectLabel>Custom Categories</SelectLabel>
+                          {newCustomCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name.charAt(0).toUpperCase() +
+                                cat.name.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )}
+                    </SelectContent>
+                  </Select>
 
-                <Select value={vendorFilter} onValueChange={setVendorFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Person" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All People</SelectItem>
-                    {vendors.map((vendor) => (
-                      <SelectItem key={vendor.id} value={vendor.id}>
-                        {vendor.name}
-                      </SelectItem>
+                  <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Person" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All People</SelectItem>
+                      {vendors.map((vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={vendorTypeFilter}
+                    onValueChange={setVendorTypeFilter}
+                  >
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="engineer">Engineer</SelectItem>
+                      <SelectItem value="contractor">Contractor</SelectItem>
+                      <SelectItem value="supplier">Supplier</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Input
+                      type="number"
+                      placeholder="Min amount"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      className="w-full sm:w-[120px]"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Max amount"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                      className="w-full sm:w-[120px]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full sm:w-[160px]"
+                    />
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full sm:w-[160px]"
+                    />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <CommandDialog
+              open={searchDialogOpen}
+              onOpenChange={setSearchDialogOpen}
+            >
+              <CommandInput
+                placeholder="Search expenses..."
+                onValueChange={(search) => {
+                  setSearchSuggestions(generateSearchSuggestions(search));
+                }}
+              />
+              <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                {searchSuggestions.length > 0 && (
+                  <CommandGroup heading="Suggestions">
+                    {searchSuggestions.map((suggestion, index) => (
+                      <CommandItem
+                        key={`${suggestion.type}-${index}`}
+                        value={suggestion.searchValue}
+                        onSelect={() => handleSearchSelect(suggestion)}
+                      >
+                        {suggestion.label}
+                      </CommandItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </CommandGroup>
+                )}
+                <CommandSeparator />
+                <CommandGroup heading="Tips">
+                  <CommandItem>
+                    Search by category, person, amount, or description
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </CommandDialog>
 
-                <Select value={vendorTypeFilter} onValueChange={setVendorTypeFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="engineer">Engineer</SelectItem>
-                    <SelectItem value="contractor">Contractor</SelectItem>
-                    <SelectItem value="supplier">Supplier</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Amount Range - Stack on mobile */}
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <Input
-                    type="number"
-                    placeholder="Min amount"
-                    value={minAmount}
-                    onChange={(e) => setMinAmount(e.target.value)}
-                    className="w-full sm:w-[120px]"
-                  />
-                  <span className="hidden sm:block">to</span>
-                  <Input
-                    type="number"
-                    placeholder="Max amount"
-                    value={maxAmount}
-                    onChange={(e) => setMaxAmount(e.target.value)}
-                    className="w-full sm:w-[120px]"
-                  />
-                </div>
-
-                {/* Date Range - Stack on mobile */}
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full sm:w-[160px]"
-                  />
-                  <span className="hidden sm:block">to</span>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full sm:w-[160px]"
-                  />
-                </div>
-              </div>
-
-              {/* Filtered Total - Responsive layout */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="col-span-full lg:col-span-3">
-                  <CardHeader className="py-2 px-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground block sm:inline">Total:</span>
-                        <span className="text-lg font-bold ml-0 sm:ml-2 block sm:inline">
-                          {formatCurrency(filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0))}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground block sm:inline">Average:</span>
-                        <span className="text-lg font-bold ml-0 sm:ml-2 block sm:inline">
-                          {formatCurrency(filteredExpenses.length ? 
-                            filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0) / filteredExpenses.length : 0
-                          )}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground block sm:inline">Count:</span>
-                        <span className="text-lg font-bold ml-0 sm:ml-2 block sm:inline">{filteredExpenses.length}</span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-                <Button 
-                  variant="outline" 
-                  onClick={handleExport} 
-                  disabled={isExporting}
-                  className="w-full"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Export
-                    </>
-                  )}
-                </Button>
-              </div>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? "Exporting..." : "Export to PDF"}
+              </Button>
+              <Button onClick={() => setIsAddingExpense(true)}>
+                New Expense
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -912,31 +991,31 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Replace the floating action button with SpeedDial */}
-        <SpeedDial
-          onAddExpense={() => setIsAddingExpense(true)}
-          onExport={handleExport}
-        />
-
         {/* Add Expense Dialog */}
         <Dialog open={isAddingExpense} onOpenChange={setIsAddingExpense}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleAddExpense} className="space-y-4">
-              <div className="space-y-4">
-                <div className="grid w-full items-center gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Amount"
-                    value={newAmount}
-                    onChange={(e) => setNewAmount(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="grid w-full items-center gap-2">
+            <form onSubmit={handleAddExpense} className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="amount" className="text-right">
+                  Amount
+                </Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="category" className="text-right">
+                  Category
+                </Label>
+                <div className="col-span-3 flex gap-2">
                   <Select value={newCategory} onValueChange={setNewCategory}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -955,7 +1034,8 @@ export default function Dashboard() {
                           <SelectLabel>Custom Categories</SelectLabel>
                           {newCustomCategories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.name}>
-                              {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
+                              {cat.name.charAt(0).toUpperCase() +
+                                cat.name.slice(1)}
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -965,13 +1045,18 @@ export default function Dashboard() {
                   <Button
                     type="button"
                     variant="outline"
+                    size="icon"
                     onClick={() => setIsAddingCategory(true)}
                   >
-                    Add New Category
+                    <PlusCircle className="h-4 w-4" />
                   </Button>
                 </div>
-
-                <div className="grid w-full items-center gap-2">
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="vendor" className="text-right">
+                  Person
+                </Label>
+                <div className="col-span-3 flex gap-2">
                   <Select value={newVendorId} onValueChange={setNewVendorId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select person" />
@@ -988,82 +1073,67 @@ export default function Dashboard() {
                   <Button
                     type="button"
                     variant="outline"
+                    size="icon"
                     onClick={() => setIsAddingVendor(true)}
                   >
-                    Add New Person
+                    <PlusCircle className="h-4 w-4" />
                   </Button>
                 </div>
-
-                <div className="grid w-full items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !newDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newDate ? format(new Date(newDate), "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={newDate ? new Date(newDate) : undefined}
-                        onSelect={(date) => date && setNewDate(format(date, 'yyyy-MM-dd'))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Input
-                    type="text"
-                    placeholder="Enter date (e.g., 18/04/2024)"
-                    onChange={(e) => {
-                      const input = e.target.value;
-                      const formats = [
-                        'dd/MM/yyyy',
-                        'dd-MM-yyyy',
-                        'd/M/yyyy',
-                        'dd/M/yyyy',
-                        'd/MM/yyyy',
-                        'yyyy-MM-dd'
-                      ];
-
-                      for (const dateFormat of formats) {
-                        const parsedDate = parse(input, dateFormat, new Date());
-                        if (isValid(parsedDate)) {
-                          setNewDate(format(parsedDate, 'yyyy-MM-dd'));
-                          break;
-                        }
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="grid w-full items-center gap-2">
-                  <Input
-                    placeholder="Description"
-                    value={newDescription}
-                    onChange={(e) => setNewDescription(e.target.value)}
-                  />
-                </div>
               </div>
-
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="date" className="text-right">
+                  Date
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !newDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newDate ? (
+                        format(new Date(newDate), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={newDate ? new Date(newDate) : undefined}
+                      onSelect={(date) =>
+                        date && setNewDate(format(date, "yyyy-MM-dd"))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Input
+                  id="description"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddingExpense(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddingExpense(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    "Add Expense"
-                  )}
+                  {isSubmitting ? "Adding..." : "Add Expense"}
                 </Button>
               </DialogFooter>
             </form>
@@ -1083,12 +1153,13 @@ export default function Dashboard() {
                 onChange={(e) => setNewCategoryName(e.target.value)}
               />
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddingCategory(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddingCategory(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleAddCategory}>
-                  Add Category
-                </Button>
+                <Button onClick={handleAddCategory}>Add Category</Button>
               </DialogFooter>
             </div>
           </DialogContent>
@@ -1106,7 +1177,12 @@ export default function Dashboard() {
                 value={newVendorName}
                 onChange={(e) => setNewVendorName(e.target.value)}
               />
-              <Select value={newVendorType} onValueChange={(value: typeof VENDOR_TYPES[number]) => setNewVendorType(value)}>
+              <Select
+                value={newVendorType}
+                onValueChange={(value: (typeof VENDOR_TYPES)[number]) =>
+                  setNewVendorType(value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -1119,12 +1195,13 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddingVendor(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddingVendor(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleAddVendor}>
-                  Add Person
-                </Button>
+                <Button onClick={handleAddVendor}>Add Person</Button>
               </DialogFooter>
             </div>
           </DialogContent>
@@ -1136,193 +1213,185 @@ export default function Dashboard() {
           setOpen={setCommandPaletteOpen}
           onAddExpense={() => setIsAddingExpense(true)}
         />
-
-        {/* Export Button */}
-        <Button variant="outline" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <FileText className="h-4 w-4 mr-2" />
-              Export to CSV
-            </>
-          )}
-        </Button>
       </div>
 
       <Dialog open={isEditingExpense} onOpenChange={setIsEditingExpense}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdateExpense} className="space-y-4">
-            <div className="space-y-4">
-              <div className="grid w-full items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Amount"
-                  value={editingExpense?.amount || ""}
-                  onChange={(e) => setEditingExpense(prev => prev ? {
-                    ...prev,
-                    amount: parseFloat(e.target.value)
-                  } : null)}
-                  required
-                />
-              </div>
-
-              <div className="grid w-full items-center gap-2">
-                <Select 
-                  value={editingExpense?.category || ""} 
-                  onValueChange={(value) => setEditingExpense(prev => prev ? {
-                    ...prev,
-                    category: value
-                  } : null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
+          <form onSubmit={handleUpdateExpense} className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-amount" className="text-right">
+                Amount
+              </Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                value={editingExpense?.amount || ""}
+                onChange={(e) =>
+                  setEditingExpense((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          amount: parseFloat(e.target.value),
+                        }
+                      : null
+                  )
+                }
+                className="col-span-3"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-category" className="text-right">
+                Category
+              </Label>
+              <Select
+                value={editingExpense?.category || ""}
+                onValueChange={(value) =>
+                  setEditingExpense((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          category: value,
+                        }
+                      : null
+                  )
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Predefined Categories</SelectLabel>
+                    {Constants.public.Enums.expense_category.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  {newCustomCategories.length > 0 && (
                     <SelectGroup>
-                      <SelectLabel>Predefined Categories</SelectLabel>
-                      {Constants.public.Enums.expense_category.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      <SelectLabel>Custom Categories</SelectLabel>
+                      {newCustomCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
-                    {newCustomCategories.length > 0 && (
-                      <SelectGroup>
-                        <SelectLabel>Custom Categories</SelectLabel>
-                        {newCustomCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>
-                            {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid w-full items-center gap-2">
-                <Select 
-                  value={editingExpense?.vendor_id || "none"} 
-                  onValueChange={(value) => setEditingExpense(prev => prev ? {
-                    ...prev,
-                    vendor_id: value === "none" ? null : value
-                  } : null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select person" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Person</SelectItem>
-                    {vendors.map((vendor) => (
-                      <SelectItem key={vendor.id} value={vendor.id}>
-                        {vendor.name} ({vendor.type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid w-full items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !editingExpense?.date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {editingExpense?.date ? format(new Date(editingExpense.date), "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={editingExpense?.date ? new Date(editingExpense.date) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          setEditingExpense(prev => prev ? {
-                            ...prev,
-                            date: format(date, 'yyyy-MM-dd')
-                          } : null);
-                        }
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <Input
-                  type="text"
-                  placeholder="Enter date (e.g., 18/04/2024)"
-                  onChange={(e) => {
-                    const input = e.target.value;
-                    let date: Date | null = null;
-
-                    // Try parsing different date formats
-                    const formats = [
-                      'dd/MM/yyyy',
-                      'dd-MM-yyyy',
-                      'd/M/yyyy',
-                      'dd/M/yyyy',
-                      'd/MM/yyyy',
-                      'yyyy-MM-dd' // ISO format
-                    ];
-
-                    for (const dateFormat of formats) {
-                      const parsedDate = parse(input, dateFormat, new Date());
-                      if (isValid(parsedDate)) {
-                        date = parsedDate;
-                        break;
-                      }
-                    }
-
-                    if (date) {
-                      setEditingExpense(prev => prev ? {
-                        ...prev,
-                        date: format(date!, 'yyyy-MM-dd')
-                      } : null);
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="grid w-full items-center gap-2">
-                <Input
-                  placeholder="Description"
-                  value={editingExpense?.description || ""}
-                  onChange={(e) => setEditingExpense(prev => prev ? {
-                    ...prev,
-                    description: e.target.value
-                  } : null)}
-                />
-              </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-vendor" className="text-right">
+                Person
+              </Label>
+              <Select
+                value={editingExpense?.vendor_id || "none"}
+                onValueChange={(value) =>
+                  setEditingExpense((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          vendor_id: value === "none" ? null : value,
+                        }
+                      : null
+                  )
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select person" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Person</SelectItem>
+                  {vendors.map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.name} ({vendor.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-date" className="text-right">
+                Date
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "col-span-3 justify-start text-left font-normal",
+                      !editingExpense?.date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editingExpense?.date ? (
+                      format(new Date(editingExpense.date), "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={
+                      editingExpense?.date
+                        ? new Date(editingExpense.date)
+                        : undefined
+                    }
+                    onSelect={(date) => {
+                      if (date) {
+                        setEditingExpense((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                date: format(date, "yyyy-MM-dd"),
+                              }
+                            : null
+                        );
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-description" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="edit-description"
+                placeholder="Description"
+                value={editingExpense?.description || ""}
+                onChange={(e) =>
+                  setEditingExpense((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          description: e.target.value,
+                        }
+                      : null
+                  )
+                }
+                className="col-span-3"
+              />
+            </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditingExpense(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditingExpense(false)}
+              >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="relative"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">Saving...</span>
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>
@@ -1330,4 +1399,4 @@ export default function Dashboard() {
       </Dialog>
     </DashboardLayout>
   );
-} 
+}

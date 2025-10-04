@@ -124,8 +124,6 @@ export function ExpensesTable({ expenses, onEdit, onDelete, loading = false }: E
       <DataTable
         columns={columns}
         data={expenses}
-        searchField="description"
-        searchPlaceholder="Search expenses..."
       />
     </div>
   );
